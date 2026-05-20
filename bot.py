@@ -5,7 +5,7 @@ from groq import Groq
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 
-TELEGRAM_TOKEN = "8648184653:AAHwBXxkIqM1MQRLiUh34YnCcHDGbL0wM5A"
+TELEGRAM_TOKEN = "8648184653:AAHWBXxkIqM1MQRLiUh34YnCcHDGbL0wM5A"
 GROQ_API_KEY = "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"
 CHANNEL_ID = "@DoonPathsala"
 
