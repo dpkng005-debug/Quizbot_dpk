@@ -88,11 +88,11 @@ async def handle_other(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 def main():
+    import os
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(MessageHandler(filters.Document.PDF, handle_pdf))
     app.add_handler(MessageHandler(filters.ALL, handle_other))
     print("🤖 Bot चालू है...")
-    app.run_polling()
-
+    app.run_polling(drop_pending_updates=True)
 if __name__ == "__main__":
     main()
