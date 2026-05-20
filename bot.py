@@ -17,11 +17,8 @@ PORT = int(os.environ.get("PORT", 8080))  # Render ke liye dynamic port fixation
 
 # API Configuration
 # client_options ka use karke v1 API ko force karna
-genai.configure(
-    api_key=GEMINI_API_KEY,
-    client_options={"api_version": "v1"}
-)
-model = genai.GenerativeModel("gemini-1.5-flash")
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel("gemini-pro")
 
 # Dummy HTTP Server Render ki active checking ke liye
 class Handler(BaseHTTPRequestHandler):
