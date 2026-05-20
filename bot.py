@@ -22,19 +22,15 @@ def extract_text(pdf_bytes: bytes) -> str:
 def parse_questions_via_groq(text: str) -> list:
     prompt = f"""You are given a text containing MCQ questions with options and answers.
 Extract ALL questions and return them as a JSON array.
-
 Each object must have:
 - "question": the question text
 - "options": array of exactly 4 option strings (without A) B) C) D) prefix)
 - "correct_index": 0-based index of correct answer (0=A, 1=B, 2=C, 3=D)
-
 Return ONLY valid JSON array. No explanation. No markdown.
-
 Text:
-{text}
-"""
+{text}"""
     response = groq_client.chat.completions.create(
-       model="llama-3.3-70b-versatile",
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.1,
         max_tokens=3000,
@@ -82,18 +78,15 @@ async def handle_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_other(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "👋 नमस्ते! मुझे MCQ वाली *PDF भेजें*\n\n"
-        "मैं automatically उन्हें आपके *Education Channel* पर\n"
-        "Quiz Polls के रूप में post कर दूंगा! 🎯",
-        parse_mode="Markdown"
+        "👋 नमस्ते! मुझे MCQ वाली PDF भेजें!\nमैं automatically Channel पर Quiz Polls post कर दूंगा! 🎯"
     )
 
 def main():
-    import os
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(MessageHandler(filters.Document.PDF, handle_pdf))
     app.add_handler(MessageHandler(filters.ALL, handle_other))
     print("🤖 Bot चालू है...")
     app.run_polling(drop_pending_updates=True)
+
 if __name__ == "__main__":
     main()
