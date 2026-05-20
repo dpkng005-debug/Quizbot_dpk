@@ -50,7 +50,7 @@ async def post_polls_to_channel(questions: list, context, status_msg):
                 type="quiz",
                 correct_option_id=q["correct_index"],
                 is_anonymous=True,
-                explanation=f"✅ Correct: {q['options'][q['correct_index']]}"
+                explanation=f"✅ सही जवाब: {q['options'][q['correct_index']]}\n\n📚 {q.get('explanation', 'यह सही उत्तर है!')}"
             )
             await status_msg.edit_text(f"⏳ Posting... {i+1}/{total} done")
         except Exception as e:
