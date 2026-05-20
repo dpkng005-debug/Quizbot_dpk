@@ -50,7 +50,7 @@ Each object must have:
 Return ONLY valid JSON array. No explanation. No markdown.
 Text:
 {text}"""
-    # Simple response configuration for gemini-pro
+# Simple response configuration for gemini-pro
 response = model.generate_content(prompt)
 raw = response.text.strip()
 return json.loads(raw)
