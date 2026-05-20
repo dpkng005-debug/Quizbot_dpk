@@ -51,9 +51,9 @@ Return ONLY valid JSON array. No explanation. No markdown.
 Text:
 {text}"""
 # Simple response configuration for gemini-pro
-response = model.generate_content(prompt)
-raw = response.text.strip()
-return json.loads(raw)
+    response = model.generate_content(prompt)
+    raw = response.text.strip()
+    return json.loads(raw)
 
 async def post_polls_to_channel(questions: list, context, status_msg):
     total = len(questions)
