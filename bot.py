@@ -1,8 +1,6 @@
 import re
 import json
 import fitz
-from threading import Thread
-from http.server import HTTPServer, BaseHTTPRequestHandler
 from groq import Groq
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
@@ -14,16 +12,7 @@ CHANNEL_ID = os.environ.get("CHANNEL_ID")
 
 groq_client = Groq(api_key=GROQ_API_KEY)
 
-class Handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Bot is alive!")
-    def log_message(self, *args):
-        pass
 
-port = int(os.environ.get("PORT", 10000))
-Thread(target=lambda: HTTPServer(("0.0.0.0", port), Handler).serve_forever(), daemon=True).start()
 
 def extract_text(pdf_bytes: bytes) -> str:
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
