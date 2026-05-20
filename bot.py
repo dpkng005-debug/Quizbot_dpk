@@ -78,11 +78,27 @@ async def handle_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await status.edit_text(f"🎉 Done! {len(questions)} Quiz Polls post हो गए!")
     except Exception as e:
         await status.edit_text(f"⚠️ Error: {str(e)}")
-
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+    if text and len(text) > 50:
+        status = await update.message.reply_text("🤖 Questions parse हो रहे हैं...")
+        try:
+            questions = parse_questions_via_groq(text)
+            if not questions:
+                await status.edit_text("❌ कोई question नहीं मिला।")
+                return
+            await status.edit_text(f"✅ {len(questions)} questions मिले! Channel पर post हो रहे हैं...")
+            await post_polls_to_channel(questions, context, status)
+            await status.edit_text(f"🎉 Done! {len(questions)} Quiz Polls post हो गए!")
+        except Exception as e:
+            await status.edit_text(f"⚠️ Error: {str(e)}")
+    else:
+        await update.message.reply_text("👋 नमस्ते! मुझे MCQ वाली PDF या Text भेजें!")
 
 def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(MessageHandler(filters.Document.PDF, handle_pdf))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     print("🤖 Bot चालू है...")
     app.run_polling(drop_pending_updates=True)
 
