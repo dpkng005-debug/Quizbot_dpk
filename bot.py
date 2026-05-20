@@ -1,30 +1,19 @@
 import re
 import json
 import fitz
-import os
-
-# Google library ko zabardasti stable version par bhejney ke liye
-os.environ["GOOGLE_API_VERSION"] = "v1"
-import base64
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
-import google.generativeai as genai
+from groq import Groq
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+import os
 
-# Environment Variables aur Ports
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 CHANNEL_ID = os.environ.get("CHANNEL_ID")
-PORT = int(os.environ.get("PORT", 8080))  # Render ke liye dynamic port fixation
 
-# API Configuration
-# client_options ka use karke v1 API ko force karna
-# Library ko direct parameter se bol rahe hain ki beta version mat use karo
-# Google ko direct v1 stable endpoint par bhejney ka sahi tarika
-genai.configure(api_key=GEMINI_API_KEY, client_options={'api_endpoint': 'generativelanguage.googleapis.com/v1'})
-model = genai.GenerativeModel("gemini-1.5-flash")
-# Dummy HTTP Server Render ki active checking ke liye
+groq_client = Groq(api_key=GROQ_API_KEY)
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -33,8 +22,7 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
 
-# Server ko dynamic PORT par chalana
-Thread(target=lambda: HTTPServer(("0.0.0.0", PORT), Handler).serve_forever(), daemon=True).start()
+Thread(target=lambda: HTTPServer(("0.0.0.0", 8080), Handler).serve_forever(), daemon=True).start()
 
 def extract_text(pdf_bytes: bytes) -> str:
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
@@ -43,7 +31,7 @@ def extract_text(pdf_bytes: bytes) -> str:
         text += page.get_text()
     return text
 
-def parse_questions_via_gemini(text: str) -> list:
+def parse_questions_via_groq(text: str) -> list:
     prompt = f"""You are given a text containing MCQ questions with options and answers.
 Extract ALL questions and return them as a JSON array.
 Each object must have:
@@ -54,9 +42,14 @@ Each object must have:
 Return ONLY valid JSON array. No explanation. No markdown.
 Text:
 {text}"""
-# Simple response configuration for gemini-pro
-    response = model.generate_content(prompt)
-    raw = response.text.strip()
+    response = groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.1,
+        max_tokens=3000,
+    )
+    raw = response.choices[0].message.content.strip()
+    raw = re.sub(r"```json|```", "", raw).strip()
     return json.loads(raw)
 
 async def post_polls_to_channel(questions: list, context, status_msg):
@@ -74,7 +67,6 @@ async def post_polls_to_channel(questions: list, context, status_msg):
             )
             await status_msg.edit_text(f"⏳ Posting... {i+1}/{total} done")
         except Exception as e:
-            print(f"Poll Error: {str(e)}") # console pe print hoga
             await status_msg.edit_text(f"⚠️ Q{i+1} failed: {str(e)}")
 
 async def handle_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -86,8 +78,8 @@ async def handle_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not text.strip():
             await status.edit_text("❌ PDF से text नहीं निकला। Text वाली PDF भेजें!")
             return
-        await status.edit_text("🤖 Gemini questions parse कर रहा है...")
-        questions = parse_questions_via_gemini(text)
+        await status.edit_text("🤖 Questions parse हो रहे हैं...")
+        questions = parse_questions_via_groq(text)
         if not questions:
             await status.edit_text("❌ कोई question नहीं मिला।")
             return
@@ -100,9 +92,9 @@ async def handle_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     if text and len(text) > 50:
-        status = await update.message.reply_text("🤖 Gemini questions parse कर रहा है...")
+        status = await update.message.reply_text("🤖 Questions parse हो रहे हैं...")
         try:
-            questions = parse_questions_via_gemini(text)
+            questions = parse_questions_via_groq(text)
             if not questions:
                 await status.edit_text("❌ कोई question नहीं मिला।")
                 return
@@ -115,14 +107,10 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("👋 नमस्ते! मुझे MCQ वाली PDF या Text भेजें! 🎯")
 
 def main():
-    if not TELEGRAM_TOKEN or not GEMINI_API_KEY or not CHANNEL_ID:
-        print("⚠️ Error: Environment variables (Tokens/Keys) missing hain!")
-        return
-
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(MessageHandler(filters.Document.PDF, handle_pdf))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    print(f"🤖 Bot चालू है port {PORT} पर...")
+    print("🤖 Bot चालू है...")
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
