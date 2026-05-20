@@ -1,3 +1,4 @@
+import os
 import re
 import json
 import fitz
@@ -5,9 +6,9 @@ from groq import Groq
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 
-TELEGRAM_TOKEN = "8876226468:AAHcLEg3AMizZAnExnEyjGxOlFq9YnHuTMk"
-GROQ_API_KEY = "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"
-CHANNEL_ID = "@DoonPathsala"
+TELEGRAM_TOKEN = os.environ.get("8876226468:AAHcLEg3AMizZAnExnEyjGxOlFq9YnHuTMk")
+GROQ_API_KEY = os.environ.get("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")
+CHANNEL_ID = os.environ.get("@DoonPathsala")
 
 groq_client = Groq(api_key=GROQ_API_KEY)
 
