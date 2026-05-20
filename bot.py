@@ -12,8 +12,6 @@ CHANNEL_ID = os.environ.get("CHANNEL_ID")
 
 groq_client = Groq(api_key=GROQ_API_KEY)
 
-
-
 def extract_text(pdf_bytes: bytes) -> str:
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     text = ""
