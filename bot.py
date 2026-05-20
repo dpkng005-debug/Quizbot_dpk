@@ -9,7 +9,7 @@ from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTyp
 import os
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+GROQ_API_KEY = os.environ.get("GEMINI_API_KEY")
 CHANNEL_ID = os.environ.get("CHANNEL_ID")
 
 groq_client = Groq(api_key=GROQ_API_KEY)
