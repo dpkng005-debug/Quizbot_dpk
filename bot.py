@@ -21,7 +21,8 @@ PORT = int(os.environ.get("PORT", 8080))  # Render ke liye dynamic port fixation
 # API Configuration
 # client_options ka use karke v1 API ko force karna
 # Library ko direct parameter se bol rahe hain ki beta version mat use karo
-genai.configure(api_key=GEMINI_API_KEY, client_options={"api_version": "v1"})
+# Google ko direct v1 stable endpoint par bhejney ka sahi tarika
+genai.configure(api_key=GEMINI_API_KEY, client_options={'api_endpoint': 'generativelanguage.googleapis.com/v1'})
 model = genai.GenerativeModel("gemini-1.5-flash")
 # Dummy HTTP Server Render ki active checking ke liye
 class Handler(BaseHTTPRequestHandler):
