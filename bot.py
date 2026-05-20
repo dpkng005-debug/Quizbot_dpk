@@ -1,18 +1,20 @@
 import re
 import json
 import fitz
+import os
+import base64
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from groq import Groq
+import google.generativeai as genai
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
-import os
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-GROQ_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 CHANNEL_ID = os.environ.get("CHANNEL_ID")
 
-groq_client = Groq(api_key=GROQ_API_KEY)
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -31,7 +33,7 @@ def extract_text(pdf_bytes: bytes) -> str:
         text += page.get_text()
     return text
 
-def parse_questions_via_groq(text: str) -> list:
+def parse_questions_via_gemini(text: str) -> list:
     prompt = f"""You are given a text containing MCQ questions with options and answers.
 Extract ALL questions and return them as a JSON array.
 Each object must have:
@@ -42,13 +44,8 @@ Each object must have:
 Return ONLY valid JSON array. No explanation. No markdown.
 Text:
 {text}"""
-    response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.1,
-        max_tokens=3000,
-    )
-    raw = response.choices[0].message.content.strip()
+    response = model.generate_content(prompt)
+    raw = response.text.strip()
     raw = re.sub(r"```json|```", "", raw).strip()
     return json.loads(raw)
 
@@ -78,8 +75,8 @@ async def handle_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not text.strip():
             await status.edit_text("❌ PDF से text नहीं निकला। Text वाली PDF भेजें!")
             return
-        await status.edit_text("🤖 Questions parse हो रहे हैं...")
-        questions = parse_questions_via_groq(text)
+        await status.edit_text("🤖 Gemini questions parse कर रहा है...")
+        questions = parse_questions_via_gemini(text)
         if not questions:
             await status.edit_text("❌ कोई question नहीं मिला।")
             return
@@ -92,9 +89,9 @@ async def handle_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     if text and len(text) > 50:
-        status = await update.message.reply_text("🤖 Questions parse हो रहे हैं...")
+        status = await update.message.reply_text("🤖 Gemini questions parse कर रहा है...")
         try:
-            questions = parse_questions_via_groq(text)
+            questions = parse_questions_via_gemini(text)
             if not questions:
                 await status.edit_text("❌ कोई question नहीं मिला।")
                 return
