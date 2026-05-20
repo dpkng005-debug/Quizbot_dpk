@@ -8,7 +8,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 import os
 
-TELEGRAM_TOKEN = os.environ.get("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")
+TELEGRAM_TOKEN = os.environ.get("8648184653:AAHWBXxkIqM1MQRLiUh34YnCcHDGbL0wM5A")
 GROQ_API_KEY = os.environ.get("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")
 CHANNEL_ID = os.environ.get("@DoonPathsala")
 
