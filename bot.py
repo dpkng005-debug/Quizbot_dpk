@@ -9,13 +9,17 @@ import google.generativeai as genai
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 
+# Environment Variables aur Ports
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 CHANNEL_ID = os.environ.get("CHANNEL_ID")
+PORT = int(os.environ.get("PORT", 8080))  # Render ke liye dynamic port fixation
 
+# API Configuration
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel("gemini-1.5-flash")
 
+# Dummy HTTP Server Render ki active checking ke liye
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -24,7 +28,8 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
 
-Thread(target=lambda: HTTPServer(("0.0.0.0", 8080), Handler).serve_forever(), daemon=True).start()
+# Server ko dynamic PORT par chalana
+Thread(target=lambda: HTTPServer(("0.0.0.0", PORT), Handler).serve_forever(), daemon=True).start()
 
 def extract_text(pdf_bytes: bytes) -> str:
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
@@ -44,9 +49,12 @@ Each object must have:
 Return ONLY valid JSON array. No explanation. No markdown.
 Text:
 {text}"""
-    response = model.generate_content(prompt)
+    # response strict json ke liye configuration
+    response = model.generate_content(
+        prompt, 
+        generation_config={"response_mime_type": "application/json"}
+    )
     raw = response.text.strip()
-    raw = re.sub(r"```json|```", "", raw).strip()
     return json.loads(raw)
 
 async def post_polls_to_channel(questions: list, context, status_msg):
@@ -64,6 +72,7 @@ async def post_polls_to_channel(questions: list, context, status_msg):
             )
             await status_msg.edit_text(f"⏳ Posting... {i+1}/{total} done")
         except Exception as e:
+            print(f"Poll Error: {str(e)}") # console pe print hoga
             await status_msg.edit_text(f"⚠️ Q{i+1} failed: {str(e)}")
 
 async def handle_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -104,10 +113,14 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("👋 नमस्ते! मुझे MCQ वाली PDF या Text भेजें! 🎯")
 
 def main():
+    if not TELEGRAM_TOKEN or not GEMINI_API_KEY or not CHANNEL_ID:
+        print("⚠️ Error: Environment variables (Tokens/Keys) missing hain!")
+        return
+
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(MessageHandler(filters.Document.PDF, handle_pdf))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    print("🤖 Bot चालू है...")
+    print(f"🤖 Bot चालू है port {PORT} पर...")
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
