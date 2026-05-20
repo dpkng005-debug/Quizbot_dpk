@@ -1,15 +1,28 @@
 import re
 import json
 import fitz
+from threading import Thread
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from groq import Groq
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+import os
 
-TELEGRAM_TOKEN = "8648184653:AAHWBXxkIqM1MQRLiUh34YnCcHDGbL0wM5A"
-GROQ_API_KEY = "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"
-CHANNEL_ID = "@DoonPathsala"
+TELEGRAM_TOKEN = os.environ.get("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")
+GROQ_API_KEY = os.environ.get("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")
+CHANNEL_ID = os.environ.get("@DoonPathsala")
 
 groq_client = Groq(api_key=GROQ_API_KEY)
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is alive!")
+    def log_message(self, *args):
+        pass
+
+Thread(target=lambda: HTTPServer(("0.0.0.0", 8080), Handler).serve_forever(), daemon=True).start()
 
 def extract_text(pdf_bytes: bytes) -> str:
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
@@ -21,15 +34,12 @@ def extract_text(pdf_bytes: bytes) -> str:
 def parse_questions_via_groq(text: str) -> list:
     prompt = f"""You are given a text containing MCQ questions with options and answers.
 Extract ALL questions and return them as a JSON array.
-
 Each object must have:
 - "question": the question text
 - "options": array of exactly 4 option strings (without A) B) C) D) prefix)
 - "correct_index": 0-based index of correct answer (0=A, 1=B, 2=C, 3=D)
 - "explanation": why this answer is correct (1-2 lines in Hindi)
-
 Return ONLY valid JSON array. No explanation. No markdown.
-
 Text:
 {text}"""
     response = groq_client.chat.completions.create(
@@ -66,7 +76,7 @@ async def handle_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pdf_bytes = bytes(await file.download_as_bytearray())
         text = extract_text(pdf_bytes)
         if not text.strip():
-            await status.edit_text("❌ PDF से text नहीं निकला।")
+            await status.edit_text("❌ PDF से text नहीं निकला। Text वाली PDF भेजें!")
             return
         await status.edit_text("🤖 Questions parse हो रहे हैं...")
         questions = parse_questions_via_groq(text)
@@ -78,6 +88,7 @@ async def handle_pdf(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await status.edit_text(f"🎉 Done! {len(questions)} Quiz Polls post हो गए!")
     except Exception as e:
         await status.edit_text(f"⚠️ Error: {str(e)}")
+
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     if text and len(text) > 50:
@@ -93,7 +104,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             await status.edit_text(f"⚠️ Error: {str(e)}")
     else:
-        await update.message.reply_text("👋 नमस्ते! मुझे MCQ वाली PDF या Text भेजें!")
+        await update.message.reply_text("👋 नमस्ते! मुझे MCQ वाली PDF या Text भेजें! 🎯")
 
 def main():
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
