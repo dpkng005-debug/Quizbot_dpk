@@ -2,6 +2,9 @@ import re
 import json
 import fitz
 import os
+
+# Google library ko zabardasti stable version par bhejney ke liye
+os.environ["GOOGLE_API_VERSION"] = "v1"
 import base64
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -18,7 +21,7 @@ PORT = int(os.environ.get("PORT", 8080))  # Render ke liye dynamic port fixation
 # API Configuration
 # client_options ka use karke v1 API ko force karna
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash-latest")
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 # Dummy HTTP Server Render ki active checking ke liye
 class Handler(BaseHTTPRequestHandler):
