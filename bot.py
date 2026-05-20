@@ -22,7 +22,8 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
 
-Thread(target=lambda: HTTPServer(("0.0.0.0", 8080), Handler).serve_forever(), daemon=True).start()
+port = int(os.environ.get("PORT", 10000))
+Thread(target=lambda: HTTPServer(("0.0.0.0", port), Handler).serve_forever(), daemon=True).start()
 
 def extract_text(pdf_bytes: bytes) -> str:
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
